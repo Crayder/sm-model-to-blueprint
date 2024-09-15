@@ -92,15 +92,15 @@ class VoxelConverterUI:
         scale_x_entry.grid(row=0, column=2, padx=5, pady=5)
 
         ttk.Label(transform_frame, text="Y:").grid(row=0, column=3, padx=5, pady=5, sticky="e")
-        scale_y_entry = ttk.Entry(transform_frame, textvariable=self.scale_y, width=10)
+        scale_y_entry = ttk.Entry(transform_frame, textvariable=self.scale_y, width=10, state="disabled")
         scale_y_entry.grid(row=0, column=4, padx=5, pady=5)
 
         ttk.Label(transform_frame, text="Z:").grid(row=0, column=5, padx=5, pady=5, sticky="e")
-        scale_z_entry = ttk.Entry(transform_frame, textvariable=self.scale_z, width=10)
+        scale_z_entry = ttk.Entry(transform_frame, textvariable=self.scale_z, width=10, state="disabled")
         scale_z_entry.grid(row=0, column=6, padx=5, pady=5)
 
         # **Add Uniform Scaling Checkbox**
-        self.uniform_scaling = tk.BooleanVar(value=False)
+        self.uniform_scaling = tk.BooleanVar(value=True)
         uniform_check = ttk.Checkbutton(
             transform_frame,
             text="Uniform",
