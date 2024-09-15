@@ -60,7 +60,7 @@ class VoxelConverterUI:
         input_button.grid(row=0, column=1, padx=5, pady=5)
 
         # Output File Selection
-        output_frame = ttk.LabelFrame(self.root, text="Output JSON File")
+        output_frame = ttk.LabelFrame(self.root, text="Output Blueprint JSON File")
         output_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
 
         # Handle default output file path
@@ -99,6 +99,19 @@ class VoxelConverterUI:
         scale_z_entry = ttk.Entry(transform_frame, textvariable=self.scale_z, width=10)
         scale_z_entry.grid(row=0, column=6, padx=5, pady=5)
 
+        # **Add Uniform Scaling Checkbox**
+        self.uniform_scaling = tk.BooleanVar(value=False)
+        uniform_check = ttk.Checkbutton(
+            transform_frame,
+            text="Uniform",
+            variable=self.uniform_scaling,
+            command=self.toggle_uniform_scaling
+        )
+        uniform_check.grid(row=0, column=7, padx=5, pady=5, sticky="w")
+
+        # Bind Scale X changes for use when Uniform is Enabled
+        self.scale_x.trace_add("write", self.on_scale_x_change)
+
         # Offset
         offset_label = ttk.Label(transform_frame, text="Offset:")
         offset_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
@@ -136,31 +149,28 @@ class VoxelConverterUI:
         ttk.Label(transform_frame, text="degrees").grid(row=2, column=3, padx=5, pady=5, sticky="w")
 
         # Color Selection
-        color_frame = ttk.LabelFrame(self.root, text="Set Color")
-        color_frame.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
+        appearance_frame = ttk.LabelFrame(self.root, text="Block Appearance")
+        appearance_frame.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
 
         self.use_set_color = tk.BooleanVar(value=constants.CONFIG_VALUES["use_set_color"])
-        set_color_check = ttk.Checkbutton(color_frame, text="Use Custom Set Color", variable=self.use_set_color, command=self.toggle_color_picker)
+        set_color_check = ttk.Checkbutton(appearance_frame, text="Use Custom Set Color", variable=self.use_set_color, command=self.toggle_color_picker)
         set_color_check.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
         self.set_color = constants.CONFIG_VALUES["set_color"]
-        self.color_display = tk.Canvas(color_frame, width=50, height=20, bg=self.rgb_to_hex(self.set_color))
+        self.color_display = tk.Canvas(appearance_frame, width=120, height=20, bg=self.rgb_to_hex(self.set_color))
         self.color_display.grid(row=0, column=1, padx=5, pady=5)
 
-        color_button = ttk.Button(color_frame, text="Choose Color", command=self.choose_color)
+        color_button = ttk.Button(appearance_frame, text="Choose Color", command=self.choose_color)
         color_button.grid(row=0, column=2, padx=5, pady=5)
 
         # Material Selection
-        material_frame = ttk.LabelFrame(self.root, text="Material Selection")
-        material_frame.grid(row=4, column=0, padx=10, pady=10, sticky="ew")
-
         self.use_set_block = tk.BooleanVar(value=constants.CONFIG_VALUES["use_set_block"])
-        set_block_check = ttk.Checkbutton(material_frame, text="Use Custom Set Block", variable=self.use_set_block, command=self.toggle_material_dropdown)
-        set_block_check.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        set_block_check = ttk.Checkbutton(appearance_frame, text="Use Custom Set Block", variable=self.use_set_block, command=self.toggle_material_dropdown)
+        set_block_check.grid(row=1, column=0, padx=5, pady=5, sticky="w")
 
         self.set_block = tk.StringVar(value=constants.CONFIG_VALUES["set_block"])
-        self.block_dropdown = ttk.Combobox(material_frame, textvariable=self.set_block, values=list(constants.BLOCK_IDS.keys()), state="disabled", width=30)
-        self.block_dropdown.grid(row=0, column=1, padx=5, pady=5)
+        self.block_dropdown = ttk.Combobox(appearance_frame, textvariable=self.set_block, values=list(constants.BLOCK_IDS.keys()), state="disabled", width=16)
+        self.block_dropdown.grid(row=1, column=1, padx=5, pady=5)
         self.block_dropdown.set(constants.CONFIG_VALUES["set_block"])
 
         # Additional Options
@@ -244,6 +254,58 @@ class VoxelConverterUI:
         )
         if file_path:
             self.output_path.set(file_path)
+
+    def toggle_uniform_scaling(self):
+        if self.uniform_scaling.get():
+            # Set Y and Z to X's value
+            self.scale_y.set(self.scale_x.get())
+            self.scale_z.set(self.scale_x.get())
+            # Disable Y and Z entries
+            self.disable_scale_entries()
+        else:
+            # Enable Y and Z entries
+            self.enable_scale_entries()
+
+    def disable_scale_entries(self):
+        # Disable Y and Z scale entry widgets
+        # Locate the transform_frame
+        for child in self.root.winfo_children():
+            if isinstance(child, ttk.LabelFrame) and child.cget("text") == "Model Transformations":
+                transform_frame = child
+                break
+        else:
+            return  # transform_frame not found
+
+        # Disable Y and Z entry widgets
+        for widget in transform_frame.winfo_children():
+            if isinstance(widget, ttk.Entry):
+                var = widget.cget("textvariable")
+                if var == str(self.scale_y) or var == str(self.scale_z):
+                    widget.configure(state='disabled')
+
+    def enable_scale_entries(self):
+        # Enable Y and Z scale entry widgets
+        # Locate the transform_frame
+        for child in self.root.winfo_children():
+            if isinstance(child, ttk.LabelFrame) and child.cget("text") == "Model Transformations":
+                transform_frame = child
+                break
+        else:
+            return  # transform_frame not found
+
+        # Enable Y and Z entry widgets
+        for widget in transform_frame.winfo_children():
+            if isinstance(widget, ttk.Entry):
+                var = widget.cget("textvariable")
+                if var == str(self.scale_y) or var == str(self.scale_z):
+                    widget.configure(state='normal')
+
+    def on_scale_x_change(self, *args):
+        if self.uniform_scaling.get():
+            # Update Y and Z to match X
+            new_x = self.scale_x.get()
+            self.scale_y.set(new_x)
+            self.scale_z.set(new_x)
 
     def choose_color(self):
         color_code = colorchooser.askcolor(title="Choose Set Color", initialcolor=self.rgb_to_hex(self.set_color))
