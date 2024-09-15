@@ -11,11 +11,14 @@ import obj2vox  # Assuming obj-to-vox.py is renamed to obj_to_vox.py
 import constants
 
 class Redirector:
-    def __init__(self, text_widget):
+    def __init__(self, text_widget, original_stream):
         self.text_widget = text_widget
+        self.original_stream = original_stream
 
     def write(self, text):
-        # Schedule the text insertion in the main thread
+        self.original_stream.write(text)
+        self.original_stream.flush()
+        
         self.text_widget.after(0, self.append_text, text)
 
     def append_text(self, text):
@@ -25,7 +28,7 @@ class Redirector:
         self.text_widget.configure(state='disabled')
 
     def flush(self):
-        pass  # Needed for file-like object compatibility
+        self.original_stream.flush()
 
 class VoxelConverterUI:
     def __init__(self, root):
@@ -335,8 +338,8 @@ class VoxelConverterUI:
 
     def execute_conversion(self, params):
         # Redirect stdout and stderr to the console_text widget
-        sys.stdout = Redirector(self.console_text)
-        sys.stderr = Redirector(self.console_text)
+        sys.stdout = Redirector(self.console_text, self.original_stdout)
+        sys.stderr = Redirector(self.console_text, self.original_stderr)
 
         try:
             total_execution_time = obj2vox.main(
