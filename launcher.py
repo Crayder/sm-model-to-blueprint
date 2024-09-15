@@ -295,7 +295,7 @@ class VoxelConverterUI:
             input_file = os.path.abspath(os.path.join(script_dir, input_file))
 
         voxel_scale = self.voxel_scale.get()
-        obj_scale = self.scale_x.get()  # Assuming uniform scaling; adjust if different scales per axis are needed
+        obj_scale = np.array([self.scale_x.get(), self.scale_y.get(), self.scale_z.get()])
         obj_offset = np.array([self.offset_x.get(), self.offset_y.get(), self.offset_z.get()])
         rotate_axis = self.rotate_axis.get()
         rotate_angle = self.rotate_angle.get()
