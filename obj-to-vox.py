@@ -7,87 +7,8 @@ from scipy.spatial import KDTree
 from time import time
 import trimesh
 
-INPUT_FILE = '..\\testStuff.obj'
-OUTPUT_FILE = 'C:\\Users\\Corey\\AppData\\Roaming\\Axolot Games\\Scrap Mechanic\\User\\User_76561198805744844\\Blueprints\\51c6485e-c45d-47b0-a3c9-08d2db23aef9\\blueprint.json'
-
-# Scaling constants
-VOXEL_SCALE = 1.0 / 1.0  # Voxel grid resolution
-OBJ_SCALE = 4 * VOXEL_SCALE  # Scaling factor for the model itself
-OBJ_OFFSET = np.array([0.0, 0.0, 0.0])  # Offset for the model
-
-# Rotation constants
-ROTATE_AXIS = 'x'  # Axis to rotate around ('x', 'y', 'z')
-ROTATE_ANGLE = 90  # Rotation angle in degrees
-
-# Options
-USE_ONE_COLOR = False  # Use a single color for all voxels. False to use the mesh colors, 3 decimals otherwise (e.g. [1.0, 0.0, 0.0]). True to use the default color.
-USE_ONE_MATERIAL = False  # Use a single material for all voxels. False to use the mesh materials, name otherwise (e.g. "plastic"). True to use the default material.
-USE_SCRAP_COLORS = True  # Use the original Scrap Mechanic colors (converts all colors to the closest match)
-VARY_COLORS = False  # Randomly vary the colors of the voxels
-INTERIOR_FILL = False  # Fill the mesh interior
-
-# Mapping of block names to UUIDs
-BLOCK_IDS = {
-    "scrapwood": "1fc74a28-addb-451a-878d-c3c605d63811",
-    "wood1": "df953d9c-234f-4ac2-af5e-f0490b223e71",
-    "wood2": "1897ee42-0291-43e4-9645-8c5a5d310398",
-    "wood3": "061b5d4b-0a6a-4212-b0ae-9e9681f1cbfb",
-    "scrapmetal": "1f7ac0bb-ad45-4246-9817-59bdf7f7ab39",
-    "metal1": "8aedf6c2-94e1-4506-89d4-a0227c552f1e",
-    "metal2": "1016cafc-9f6b-40c9-8713-9019d399783f",
-    "metal3": "c0dfdea5-a39d-433a-b94a-299345a5df46",
-    "scrapstone": "30a2288b-e88e-4a92-a916-1edbfc2b2dac",
-    "concrete1": "a6c6ce30-dd47-4587-b475-085d55c6a3b4",
-    "concrete2": "ff234e42-5da4-43cc-8893-940547c97882",
-    "concrete3": "e281599c-2343-4c86-886e-b2c1444e8810",
-    "cardboard": "f0cba95b-2dc4-4492-8fd9-36546a4cb5aa",
-    "sand": "c56700d9-bbe5-4b17-95ed-cef05bd8be1b",
-    "plastic": "628b2d61-5ceb-43e9-8334-a4135566df7a",
-    "glass": "5f41af56-df4c-4837-9b3c-10781335757f",
-    "glasstile": "749f69e0-56c9-488c-adf6-66c58531818f",
-    "armoredglass": "b5ee5539-75a2-4fef-873b-ef7c9398b3f5",
-    "bubblewrap": "f406bf6e-9fd5-4aa0-97c1-0b3c2118198e",
-    "restroom": "920b40c8-6dfc-42e7-84e1-d7e7e73128f6",
-    "tiles": "8ca49bff-eeef-4b43-abd0-b527a567f1b7",
-    "bricks": "0603b36e-0bdb-4828-b90c-ff19abcdfe34",
-    "lights": "073f92af-f37e-4aff-96b3-d66284d5081c",
-    "caution": "09ca2713-28ee-4119-9622-e85490034758",
-    "crackedconcrete": "f5ceb7e3-5576-41d2-82d2-29860cf6e20e",
-    "concretetiles": "cd0eff89-b693-40ee-bd4c-3500b23df44e",
-    "metalbricks": "220b201e-aa40-4995-96c8-e6007af160de",
-    "beam": "25a5ffe7-11b1-4d3e-8d7a-48129cbaf05e",
-    "insulation": "9be6047c-3d44-44db-b4b9-9bcf8a9aab20",
-    "drywall": "b145d9ae-4966-4af6-9497-8fca33f9aee3",
-    "carpet": "febce8a6-6c05-4e5d-803b-dfa930286944",
-    "plasticwall": "e981c337-1c8a-449c-8602-1dd990cbba3a",
-    "metalnet": "4aa2a6f0-65a4-42e3-bf96-7dec62570e0b",
-    "crossnet": "3d0b7a6e-5b40-474c-bbaf-efaa54890e6a",
-    "tryponet": "ea6864db-bb4f-4a89-b9ec-977849b6713a",
-    "stripednet": "a479066d-4b03-46b5-8437-e99fec3f43ee",
-    "squarenet": "b4fa180c-2111-4339-b6fd-aed900b57093",
-    "spaceshipmetal": "027bd4ec-b16d-47d2-8756-e18dc2af3eb6",
-    "spaceshipfloor": "4ad97d49-c8a5-47f3-ace3-d56ba3affe50",
-    "treadplate": "f7d4bfed-1093-49b9-be32-394c872a1ef4",
-    "warehousefloor": "3e3242e4-1791-4f70-8d1d-0ae9ba3ee94c",
-    "wornmetal": "d740a27d-cc0f-4866-9e07-6a5c516ad719",
-    "framework": "c4a2ffa8-c245-41fb-9496-966c6ee4648b",
-    "challenge01": "491b1d4f-3a00-403e-b64f-f9eb7bda7683",
-    "challenge02": "cad3a585-2686-40e2-8eb1-02f5df20a021",
-    "challengeglass": "17baf3ba-0b40-4eef-9823-119059d5c12d"
-}
-
-# Scrap Mechanic colors
-SM_COLORS = [
-    "EEEEEE", "7F7F7F", "4A4A4A", "222222", "F5F071", "E2DB13", "817C00", "323000",
-    "CBF66F", "A0EA00", "577D07", "375000", "064023", "0E8031", "19E753", "68FF88",
-    "7EEDED", "2CE6E6", "118787", "0F2E91", "0A1D5A", "0A4444", "0A3EE2", "4C6FE3",
-    "AE79F0", "7514ED", "500AA6", "35086C", "472800", "520653", "560202", "673B00",
-    "DF7F00", "EEAF5C", "EE7BF0", "F06767", "CF11D2", "720A74", "7C0000", "D02525"
-]
-SM_COLORS_RGB = [np.array([int(c[i:i+2], 16) / 255 for i in range(0, 6, 2)]) for c in SM_COLORS]
-SM_COLORS_KDTREE = KDTree(SM_COLORS_RGB)
-
-DEFAULT_MATERIAL = {"color": [0.0, 0.588235, 1.0], "shapeId": BLOCK_IDS["wood1"]}  # Default to blue plastic
+# Import constants
+from constants import BLOCK_IDS, SM_COLORS_RGB, SM_COLORS_KDTREE, FALLBACK_MATERIAL, CONFIG_VALUES
 
 # Stats container
 stats = {
@@ -136,7 +57,7 @@ def find_closest_color(input_mtl_color):
         raise ValueError("KDTree query did not return a valid index.")
 
 # Function to parse the MTL file and extract material colors and names
-def parse_mtl_file(filepath):
+def parse_mtl_file(filepath, use_scrap_colors):
     materials = {}
     current_material_full = None
 
@@ -156,7 +77,7 @@ def parse_mtl_file(filepath):
                             "shapeId": shape_id,
                             "shortName": current_material_short  # Store the shortened name
                         }
-                        if USE_SCRAP_COLORS:  # Use the closest Scrap Mechanic color
+                        if use_scrap_colors:  # Use the closest Scrap Mechanic color
                             materials[current_material_full]["color"] = find_closest_color(color)
                             print(f"Color {color} replaced with {materials[current_material_full]['color']} for material {current_material_full}")
                             
@@ -169,17 +90,17 @@ def parse_mtl_file(filepath):
         return materials
 
 # Function to parse the OBJ file and extract vertices, faces, and face materials
-def parse_obj_file(filepath):
+def parse_obj_file(filepath, obj_scale, obj_offset, use_scrap_colors, use_set_color, set_color, use_set_block, set_block):
     vertices = []
     faces = []
     face_materials = []  # List for face materials
     current_material_full = None
 
     # If using one color AND one material, skip the MTL file parsing
-    if USE_ONE_COLOR is False or USE_ONE_MATERIAL is False:
+    if use_set_color is False or use_set_block is False:
         print("Parsing MTL file...")
         mtl_filepath = filepath.replace('.obj', '.mtl')
-        materials = parse_mtl_file(mtl_filepath)
+        materials = parse_mtl_file(mtl_filepath, use_scrap_colors)
     else:
         print("Not using MTL file.")
         materials = {}
@@ -188,9 +109,9 @@ def parse_obj_file(filepath):
         for line in file:
             if line.startswith('v '):
                 parts = line.split()
-                # First add the OBJ_OFFSET to the values, then scale the vertices with OBJ_SCALE
-                vertices.append((np.array([float(parts[i]) for i in range(1, 4)]) + OBJ_OFFSET) * OBJ_SCALE)
-            elif line.startswith('usemtl') and (USE_ONE_COLOR is False or USE_ONE_MATERIAL is False):
+                # First add the obj_offset to the values, then scale the vertices with obj_scale
+                vertices.append((np.array([float(parts[i]) for i in range(1, 4)]) + obj_offset) * obj_scale)
+            elif line.startswith('usemtl') and (use_set_color is False or use_set_block is False):
                 current_material_full = line.split()[1]  # Use the full name for retrieval
                 print(f"Using material: {current_material_full}")
             elif line.startswith('f '):
@@ -199,21 +120,17 @@ def parse_obj_file(filepath):
                 
                 # If no material is specified, use the default material
                 if current_material_full is None:
-                    material = DEFAULT_MATERIAL
+                    material = FALLBACK_MATERIAL
                 else:
-                    material = materials.get(current_material_full, DEFAULT_MATERIAL)
+                    material = materials.get(current_material_full, FALLBACK_MATERIAL)
 
-                # If USE_ONE_COLOR is True, use the default color, else if is list, use that color
-                if USE_ONE_COLOR is True:
-                    material["color"] = DEFAULT_MATERIAL["color"]
-                elif isinstance(USE_ONE_COLOR, list) and len(USE_ONE_COLOR) == 3:
-                    material["color"] = USE_ONE_COLOR
+                # If use_set_color is True, use the set_color
+                if use_set_color is True:
+                    material["color"] = set_color
                 
-                # If USE_ONE_MATERIAL is True, use the default material, else if is string, use that material if found in BLOCK_IDS
-                if USE_ONE_MATERIAL is True:
-                    material["shapeId"] = DEFAULT_MATERIAL["shapeId"]
-                elif isinstance(USE_ONE_MATERIAL, str):
-                    material["shapeId"] = BLOCK_IDS.get(USE_ONE_MATERIAL, DEFAULT_MATERIAL["shapeId"])
+                # If use_set_block is True, use the set_block
+                if use_set_block is True:
+                    material["shapeId"] = BLOCK_IDS.get(set_block, FALLBACK_MATERIAL["shapeId"])
 
                 if len(face) == 3:
                     faces.append(face)
@@ -679,17 +596,32 @@ def save_to_json_file(data, filename="output.json"):
     print(f"Output saved in {time() - start_time:.4f} seconds.")
 
 # Main function
-def main():
+def main(
+    input_file,
+    output_file,
+    voxel_scale,
+    obj_scale,
+    obj_offset,
+    rotate_axis,
+    rotate_angle,
+    use_set_color,
+    set_color,
+    use_set_block,
+    set_block,
+    use_scrap_colors,
+    vary_colors,
+    interior_fill
+):
     script_start_time = time()
     print("Starting main process.")
 
     # Parse the OBJ file and get vertices, faces, and face materials
-    vertices, faces, face_materials = parse_obj_file(INPUT_FILE)
+    vertices, faces, face_materials = parse_obj_file(input_file, obj_scale, obj_offset, use_scrap_colors, use_set_color, set_color, use_set_block, set_block)
     print(f"Number of vertices: {len(vertices)}")
     print(f"Number of faces: {len(faces)}")
 
     # Rotate vertices
-    rotation_matrix = create_rotation_matrix(ROTATE_AXIS, ROTATE_ANGLE)
+    rotation_matrix = create_rotation_matrix(rotate_axis, rotate_angle)
     vertices = rotate_vertices(vertices, rotation_matrix)
 
     # Calculate the bounding box for the model
@@ -698,17 +630,17 @@ def main():
     print(f"Bounding box max coordinates: {max_coords}")
 
     # Create the voxel grid
-    voxel_grid, voxel_colors, voxel_materials, min_grid_coords = create_voxel_grid(min_coords, max_coords, VOXEL_SCALE)
+    voxel_grid, voxel_colors, voxel_materials, min_grid_coords = create_voxel_grid(min_coords, max_coords, voxel_scale)
     print(f"Voxel grid shape: {voxel_grid.shape}")
 
     # Mark voxels based on triangle-voxel intersection
     voxel_grid, voxel_colors, voxel_materials = mark_voxels(
-        voxel_grid, voxel_colors, voxel_materials, min_grid_coords, VOXEL_SCALE,
+        voxel_grid, voxel_colors, voxel_materials, min_grid_coords, voxel_scale,
         vertices, faces, face_materials)
     print(f"Number of filled voxels (walls): {stats['num_voxels']}")
 
     # Interior filling
-    if INTERIOR_FILL:
+    if interior_fill:
         # Load mesh for Ray Casting
         mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
 
@@ -722,7 +654,7 @@ def main():
 
         if mesh_closed:
             # Classify voxels using Ray Casting on closed mesh
-            filled, unfilled = classify_voxels_raycast(mesh_closed, voxel_grid, min_grid_coords, voxel_grid.shape, VOXEL_SCALE)
+            filled, unfilled = classify_voxels_raycast(mesh_closed, voxel_grid, min_grid_coords, voxel_grid.shape, voxel_scale)
             stats["num_filled_voxels"] = np.sum(filled)
             stats["num_unfilled_voxels"] = np.sum(unfilled)
             print(f"Number of filled voxels: {stats['num_filled_voxels']}")
@@ -730,14 +662,14 @@ def main():
 
             # Update voxel states
             voxel_grid[filled] = 2  # Filled state
-            if isinstance(USE_ONE_COLOR, list) and len(USE_ONE_COLOR) == 3:
-                voxel_colors[filled] = USE_ONE_COLOR  # Use the specified color
+            if use_set_color:
+                voxel_colors[filled] = set_color  # Set color
             else:
-                voxel_colors[filled] = DEFAULT_MATERIAL["color"]  # Default color
-            if isinstance(USE_ONE_MATERIAL, str):
-                voxel_materials[filled] = BLOCK_IDS.get(USE_ONE_MATERIAL, DEFAULT_MATERIAL["shapeId"])
+                voxel_colors[filled] = FALLBACK_MATERIAL["color"]  # Default color
+            if use_set_block:
+                voxel_materials[filled] = BLOCK_IDS.get(set_block, FALLBACK_MATERIAL["shapeId"])
             else:
-                voxel_materials[filled] = DEFAULT_MATERIAL["shapeId"]  # Default material
+                voxel_materials[filled] = FALLBACK_MATERIAL["shapeId"]  # Default material
 
             # Optionally, set unfilled voxels to air
             # voxel_grid[unfilled] = 0  # Unfilled state (air)
@@ -749,8 +681,8 @@ def main():
     print(f"Number of minimal prisms: {len(output['bodies'][0]['childs'])}")
 
     # Save the output to a JSON file
-    save_to_json_file(output, OUTPUT_FILE)
-    print(f"Output saved to '{OUTPUT_FILE}'")
+    save_to_json_file(output, output_file)
+    print(f"Output saved to '{output_file}'")
 
     total_execution_time = time() - script_start_time
     print(f"Total execution time: {total_execution_time:.4f} seconds")
@@ -761,4 +693,20 @@ def main():
         print(f" - {key.replace('_', ' ').title()}: {value}")
 
 if __name__ == "__main__":
-    main()
+    # If launching this script directly, use the default configuration values
+    main(
+        input_file=CONFIG_VALUES["input_file"],
+        output_file=CONFIG_VALUES["output_file"],
+        voxel_scale=CONFIG_VALUES["voxel_scale"],
+        obj_scale=CONFIG_VALUES["obj_scale"],
+        obj_offset=CONFIG_VALUES["obj_offset"],
+        rotate_axis=CONFIG_VALUES["rotate_axis"],
+        rotate_angle=CONFIG_VALUES["rotate_angle"],
+        use_set_color=CONFIG_VALUES["use_set_color"],
+        set_color=CONFIG_VALUES["set_color"],
+        use_set_block=CONFIG_VALUES["use_set_block"],
+        set_block=CONFIG_VALUES["set_block"],
+        use_scrap_colors=CONFIG_VALUES["use_scrap_colors"],
+        vary_colors=CONFIG_VALUES["vary_colors"],
+        interior_fill=CONFIG_VALUES["interior_fill"]
+    )
