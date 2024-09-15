@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, colorchooser, messagebox
+from tkinter import filedialog, colorchooser, messagebox, scrolledtext
 from tkinter import ttk
 import os
 import sys
@@ -10,11 +10,32 @@ import numpy as np
 import obj2vox  # Assuming obj-to-vox.py is renamed to obj_to_vox.py
 import constants
 
+class Redirector:
+    def __init__(self, text_widget):
+        self.text_widget = text_widget
+
+    def write(self, text):
+        # Schedule the text insertion in the main thread
+        self.text_widget.after(0, self.append_text, text)
+
+    def append_text(self, text):
+        self.text_widget.configure(state='normal')
+        self.text_widget.insert('end', text)
+        self.text_widget.see('end')  # Auto-scroll to the end
+        self.text_widget.configure(state='disabled')
+
+    def flush(self):
+        pass  # Needed for file-like object compatibility
+
 class VoxelConverterUI:
     def __init__(self, root):
         self.root = root
         self.root.title("OBJ to Vox Converter")
         self.create_widgets()
+
+        # Save original stdout and stderr
+        self.original_stdout = sys.stdout
+        self.original_stderr = sys.stderr
 
     def create_widgets(self):
         # Determine the script's directory
@@ -168,6 +189,24 @@ class VoxelConverterUI:
         self.run_button = ttk.Button(self.root, text="Run Conversion", command=self.run_conversion)
         self.run_button.grid(row=7, column=0, padx=10, pady=20)
 
+        # Console Output
+        console_frame = ttk.LabelFrame(self.root, text="Console Output")
+        console_frame.grid(row=8, column=0, padx=10, pady=10, sticky="nsew")
+
+        self.console_text = tk.Text(console_frame, height=10, wrap='word', state='disabled')
+        self.console_text.pack(side='left', fill='both', expand=True)
+
+        console_scrollbar = ttk.Scrollbar(console_frame, command=self.console_text.yview)
+        console_scrollbar.pack(side='right', fill='y')
+
+        self.console_text['yscrollcommand'] = console_scrollbar.set
+
+        # Make sure the grid expands properly
+        for i in range(9):
+            self.root.grid_rowconfigure(i, weight=0)
+        self.root.grid_rowconfigure(8, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
+
     def browse_input(self):
         default_input = constants.CONFIG_VALUES["input_file"]
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -295,8 +334,12 @@ class VoxelConverterUI:
         thread.start()
 
     def execute_conversion(self, params):
+        # Redirect stdout and stderr to the console_text widget
+        sys.stdout = Redirector(self.console_text)
+        sys.stderr = Redirector(self.console_text)
+
         try:
-            obj2vox.main(
+            total_execution_time = obj2vox.main(
                 input_file=params["input_file"],
                 output_file=params["output_file"],
                 voxel_scale=params["voxel_scale"],
@@ -312,10 +355,16 @@ class VoxelConverterUI:
                 vary_colors=params["vary_colors"],
                 interior_fill=params["interior_fill"]
             )
-            messagebox.showinfo("Success", f"Conversion completed successfully!\nOutput saved to:\n{params['output_file']}")
+            self.console_text.after(0, lambda: messagebox.showinfo(
+                "Success", f"Conversion completed successfully!\n\nOutput saved to:\n{params['output_file']}\n\nTotal execution time: {total_execution_time:.2f} seconds"))
         except Exception as e:
-            messagebox.showerror("Error", f"An error occurred during conversion:\n{str(e)}")
+            self.console_text.after(0, lambda: messagebox.showerror(
+                "Error", f"An error occurred during conversion:\n{str(e)}"))
         finally:
+            # Restore original stdout and stderr
+            sys.stdout = self.original_stdout
+            sys.stderr = self.original_stderr
+
             # Re-enable the Run button
             self.run_button.configure(state='normal')
 

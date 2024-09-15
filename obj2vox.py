@@ -691,6 +691,9 @@ def main(
     print("\nRuntime Stats:")
     for key, value in stats.items():
         print(f" - {key.replace('_', ' ').title()}: {value}")
+    
+    print(f"Main process completed in {total_execution_time:.4f} seconds.")
+    return total_execution_time
 
 if __name__ == "__main__":
     # If launching this script directly, use the default configuration values
