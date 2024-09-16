@@ -8,6 +8,7 @@ class HTMLToTkinterParser(HTMLParser):
         super().__init__()
         self.text_widget = text_widget
         self.tag_stack = []
+        self.list_counters = []
 
     def handle_starttag(self, tag, attrs):
         # Map the HTML tag to Tkinter tags
@@ -17,29 +18,31 @@ class HTMLToTkinterParser(HTMLParser):
             self.tag_stack.append("bold")
         elif tag == "i" or tag == "em":
             self.tag_stack.append("italic")
-        elif tag == "ul":
-            self.tag_stack.append("list")
-        elif tag == "ol":
-            self.tag_stack.append("olist")
-            self.list_counter = 1
+        elif tag in ["ul", "ol"]:
+            self.tag_stack.append(tag)
+            self.list_counters.append(0)
         elif tag == "li":
-            if self.tag_stack[-1] == "olist":
-                self.text_widget.insert(tk.END, f"{self.list_counter}. ", "list")
-                self.list_counter += 1
+            list_type = self.tag_stack[-1]
+            indent_level = len(self.list_counters)  # Each list increases the indent level
+            indent = "\t" * indent_level  # Adjust this value to change indentation width
+            if list_type == "ol":
+                self.list_counters[-1] += 1
+                number = self.list_counters[-1]
+                self.text_widget.insert(tk.END, f"{indent}{number}. ", "list")
             else:
-                self.text_widget.insert(tk.END, "• ", "list")
+                self.text_widget.insert(tk.END, f"{indent}• ", "list")
         elif tag == "br":
             self.text_widget.insert(tk.END, "\n")
         elif tag == "hr":
             self.text_widget.insert(tk.END, "\n" + "⎯" * 40 + "\n")
 
     def handle_endtag(self, tag):
-        # Remove the tag from the stack
+        if tag in ["ul", "ol"]:
+            self.list_counters.pop()
         if tag in ["h1", "h2", "h3", "h4", "b", "i", "strong", "em", "ul", "ol"]:
             self.tag_stack.pop()
 
     def handle_data(self, data):
-        # Insert the text into the widget with the current tags
         if self.tag_stack:
             current_tag = self.tag_stack[-1]
             self.text_widget.insert(tk.END, data, current_tag)
@@ -80,16 +83,16 @@ class MarkdownHelpViewer(tk.Toplevel):
         self.load_markdown()
 
     def configure_text(self):
-        self.text.config(font=("Helvetica", 12), spacing1=5, spacing3=5)
+        self.text.config(font=("Helvetica", 12), tabs=('10', '30'), spacing1=2, spacing3=2)  # Adjust spacing here
 
         # Define tags for different HTML elements (headers, bold, italic, etc.)
-        self.text.tag_configure("h1", font=("Helvetica", 26, "bold"), spacing1=10, spacing3=10)
-        self.text.tag_configure("h2", font=("Helvetica", 22, "bold"), spacing1=8, spacing3=8)
-        self.text.tag_configure("h3", font=("Helvetica", 18, "bold"), spacing1=6, spacing3=6)
-        self.text.tag_configure("h4", font=("Helvetica", 14, "bold"), spacing1=6, spacing3=6)
+        self.text.tag_configure("h1", font=("Helvetica", 26, "bold"), spacing1=5, spacing3=5)
+        self.text.tag_configure("h2", font=("Helvetica", 22, "bold"), spacing1=4, spacing3=4)
+        self.text.tag_configure("h3", font=("Helvetica", 18, "bold"), spacing1=3, spacing3=3)
+        self.text.tag_configure("h4", font=("Helvetica", 14, "bold"), spacing1=2, spacing3=2)
         self.text.tag_configure("bold", font=("Helvetica", 12, "bold"))
         self.text.tag_configure("italic", font=("Helvetica", 12, "italic"))
-        self.text.tag_configure("list", lmargin1=25, lmargin2=50)
+        self.text.tag_configure("list", lmargin1=10, lmargin2=20, font=("Helvetica", 12))
 
     def load_markdown(self):
         try:
