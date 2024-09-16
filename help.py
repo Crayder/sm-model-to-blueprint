@@ -45,9 +45,10 @@ class HTMLToTkinterParser(HTMLParser):
         # Add double newline after headers, paragraphs, etc.
         if tag in ["h1", "h2", "h3", "h4", "p"]:
             self.text_widget.insert(tk.END, "\n\n")
-        # Add single newline after rules and lists.
-        if tag in ["hr"]:
+        # Add single newline after horizontal rules
+        if tag == "hr":
             self.text_widget.insert(tk.END, "\n")
+        # Add single newline after closing top-level lists
         if tag in ["ul", "ol"] and len(self.list_counters) == 0:
             self.text_widget.insert(tk.END, "\n")
         self.previous_tag = tag  # Update the previous tag
@@ -102,7 +103,7 @@ class MarkdownHelpViewer(tk.Toplevel):
         self.text.config(font=("Helvetica", 12), tabs=('10', '30'), spacing1=2, spacing3=2)  # Adjust spacing here
 
         # Define tags for different HTML elements (headers, bold, italic, etc.)
-        self.text.tag_configure("h1", font=("Helvetica", 26, "bold"), spacing1=4, spacing3=4, underline=1)
+        self.text.tag_configure("h1", font=("Helvetica", 26, "bold", "underline"), spacing1=4, spacing3=4)
         self.text.tag_configure("h2", font=("Helvetica", 22, "bold"), spacing1=2, spacing3=2)
         self.text.tag_configure("h3", font=("Helvetica", 18, "bold"), spacing1=2, spacing3=2)
         self.text.tag_configure("h4", font=("Helvetica", 14, "bold"), spacing1=2, spacing3=2)
