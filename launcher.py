@@ -5,6 +5,8 @@ import os
 import sys
 import json
 import numpy as np
+import uuid
+import shutil
 
 # Import the obj-to-vox and constants modules
 import obj2vox  # Assuming obj-to-vox.py is renamed to obj_to_vox.py
@@ -85,11 +87,25 @@ class VoxelConverterUI:
             default_output = os.path.abspath(os.path.join(script_dir, default_output))
         self.output_path = tk.StringVar(value=default_output)
 
-        output_entry = ttk.Entry(output_frame, textvariable=self.output_path, width=50)
-        output_entry.grid(row=0, column=0, padx=5, pady=5)
+        self.output_entry = ttk.Entry(output_frame, textvariable=self.output_path, width=50)
+        self.output_entry.grid(row=0, column=0, padx=5, pady=5)
 
-        output_button = ttk.Button(output_frame, text="Browse", command=self.browse_output)
-        output_button.grid(row=0, column=1, padx=5, pady=5)
+        self.output_button = ttk.Button(output_frame, text="Browse", command=self.browse_output)
+        self.output_button.grid(row=0, column=1, padx=5, pady=5)
+
+        # New Blueprint Checkbox
+        self.new_blueprint_var = tk.BooleanVar(value=False)
+        self.new_blueprint_check = ttk.Checkbutton(
+            output_frame,
+            text="New Blueprint",
+            variable=self.new_blueprint_var,
+            command=self.toggle_new_blueprint
+        )
+        self.new_blueprint_check.grid(row=1, column=0, padx=5, pady=5, sticky="w")
+
+        # Output Name Entry (hidden by default)
+        self.output_name_label = ttk.Label(output_frame, text="Output Name:")
+        self.output_name_entry = ttk.Entry(output_frame, width=30)
 
         # Transformation Parameters
         transform_frame = ttk.LabelFrame(self.root, text="Model Transformations")
@@ -271,6 +287,24 @@ class VoxelConverterUI:
         if file_path:
             self.output_path.set(file_path)
 
+    def toggle_new_blueprint(self):
+        if self.new_blueprint_var.get():
+            # Disable output file selector
+            self.output_entry.configure(state='disabled')
+            self.output_button.configure(state='disabled')
+            
+            # Show Output Name entry
+            self.output_name_label.grid(row=1, column=1, padx=5, pady=5, sticky="e")
+            self.output_name_entry.grid(row=1, column=2, padx=5, pady=5, sticky="w")
+        else:
+            # Enable output file selector
+            self.output_entry.configure(state='normal')
+            self.output_button.configure(state='normal')
+            
+            # Hide Output Name entry
+            self.output_name_label.grid_remove()
+            self.output_name_entry.grid_remove()
+
     def toggle_uniform_scaling(self):
         if self.uniform_scaling.get():
             # Set Y and Z to X's value
@@ -353,24 +387,36 @@ class VoxelConverterUI:
         if not self.input_path.get():
             messagebox.showerror("Input Error", "Please select an input OBJ file.")
             return
-        if not self.output_path.get():
+        if not self.new_blueprint_var.get() and not self.output_path.get():
             messagebox.showerror("Input Error", "Please select an output JSON file.")
+            return
+        if self.new_blueprint_var.get() and not self.output_name_entry.get().strip():
+            messagebox.showerror("Input Error", "Please enter an output name for the new blueprint.")
             return
 
         input_file = self.input_path.get()
-        output_file = self.output_path.get()
+
+        if self.new_blueprint_var.get():
+            # New Blueprint mode
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            output_file = os.path.join(script_dir, "blueprint.json")
+            output_name = self.output_name_entry.get().strip()
+        else:
+            # Regular mode
+            output_file = self.output_path.get()
+            output_name = None
 
         # Further validation of file paths
         if not os.path.isfile(input_file) or not input_file.endswith(".obj"):
             messagebox.showerror("Input Error", "Invalid input file selected.")
             return
-        
+
         # Make them absolute paths if not already
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        if not os.path.isabs(output_file):
-            output_file = os.path.abspath(os.path.join(script_dir, output_file))
         if not os.path.isabs(input_file):
             input_file = os.path.abspath(os.path.join(script_dir, input_file))
+        if not self.new_blueprint_var.get() and not os.path.isabs(output_file):
+            output_file = os.path.abspath(os.path.join(script_dir, output_file))
 
         voxel_scale = self.voxel_scale.get()
         obj_scale = np.array([self.scale_x.get(), self.scale_y.get(), self.scale_z.get()])
@@ -403,7 +449,9 @@ class VoxelConverterUI:
             "set_block": set_block,
             "use_scrap_colors": use_scrap_colors,
             "vary_colors": vary_colors,
-            "interior_fill": interior_fill
+            "interior_fill": interior_fill,
+            "new_blueprint": self.new_blueprint_var.get(),
+            "output_name": output_name
         }
 
         # Disable the Run button to prevent multiple clicks
@@ -436,10 +484,14 @@ class VoxelConverterUI:
                 vary_colors=params["vary_colors"],
                 interior_fill=params["interior_fill"]
             )
+            if params["new_blueprint"]:
+                blueprint_path = params["output_file"]
+                if os.path.exists(blueprint_path):
+                    self.createBlueprint(blueprint_path, params["output_name"])
             self.console_text.after(0, lambda: messagebox.showinfo(
                 "Success", f"Conversion completed successfully!\n\nOutput saved to:\n{params['output_file']}\n\nTotal execution time: {total_execution_time:.2f} seconds"))
         except Exception as e:
-            self.console_text.after(0, lambda: messagebox.showerror(
+            self.console_text.after(0, lambda e=e: messagebox.showerror(
                 "Error", f"An error occurred during conversion:\n{str(e)}"))
         finally:
             # Restore original stdout and stderr
@@ -448,6 +500,47 @@ class VoxelConverterUI:
 
             # Re-enable the Run button
             self.run_button.configure(state='normal')
+
+    def createBlueprint(self, json_path, output_name):
+        blueprint_id = str(uuid.uuid4())
+        blueprint_dir = get_blueprints_directory()
+        if not blueprint_dir:
+            messagebox.showerror("Blueprint Error", "Could not find the Scrap Mechanic blueprints directory.\n\nLeaving blueprint.json in the app folder.")
+            return
+
+        # Create the blueprint directory in the user's blueprints folder
+        blueprint_path = os.path.join(blueprint_dir, blueprint_id)
+        os.makedirs(blueprint_path, exist_ok=True)
+
+        # Copy the JSON file to the blueprint directory, as blueprint.json
+        blueprint_json = os.path.join(blueprint_path, "blueprint.json")
+        shutil.copy(json_path, blueprint_json)
+
+        # Copy blueprint_schematic/icon.png to the blueprint directory
+        dirname = os.path.dirname(__file__)
+        icon_path = os.path.join(dirname, "blueprint_schematic", "icon.png")
+        if os.path.exists(icon_path):
+            icon_dest = os.path.join(blueprint_path, "icon.png")
+            shutil.copy(icon_path, icon_dest)
+        
+        # Load blueprint_schematic/description.json
+        desc_path = os.path.join(dirname, "blueprint_schematic", "description.json")
+        with open(desc_path, 'r') as f:
+            desc_data = json.load(f)
+
+        # Update the description.json with the output name
+        desc_data["name"] = output_name
+        desc_data["localId"] = blueprint_id
+
+        # Save the updated description.json to the blueprint directory
+        desc_dest = os.path.join(blueprint_path, "description.json")
+        with open(desc_dest, 'w') as f:
+            json.dump(desc_data, f, indent=4)
+
+        # Delete the original JSON file
+        os.remove(json_path)
+
+        print(f"Blueprint created successfully: {output_name} ({blueprint_id})")
 
 def main():
     root = tk.Tk()
