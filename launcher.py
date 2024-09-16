@@ -28,14 +28,24 @@ def get_blueprints_directory():
     else:
         return None
 
+# Function to get absolute path to resource, works for dev and for PyInstaller.
+def resource_path(relative_path):
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")  # Use the current directory for development
+    return os.path.join(base_path, relative_path)
+
 class Redirector:
     def __init__(self, text_widget, original_stream):
         self.text_widget = text_widget
         self.original_stream = original_stream
 
     def write(self, text):
-        self.original_stream.write(text)
-        self.original_stream.flush()
+        if self.original_stream:
+            self.original_stream.write(text)
+            self.original_stream.flush()
         
         self.text_widget.after(0, self.append_text, text)
 
@@ -46,7 +56,8 @@ class Redirector:
         self.text_widget.configure(state='disabled')
 
     def flush(self):
-        self.original_stream.flush()
+        if self.original_stream:
+            self.original_stream.flush()
 
 class VoxelConverterUI:
     def __init__(self, root):
@@ -55,8 +66,8 @@ class VoxelConverterUI:
         self.create_widgets()
 
         # Save original stdout and stderr
-        self.original_stdout = sys.stdout
-        self.original_stderr = sys.stderr
+        self.original_stdout = sys.stdout if sys.stdout else None
+        self.original_stderr = sys.stderr if sys.stderr else None
 
     def create_widgets(self):
         # Determine the script's directory
@@ -66,9 +77,13 @@ class VoxelConverterUI:
         input_frame = ttk.LabelFrame(self.root, text="Input OBJ File")
         input_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-        default_input = constants.CONFIG_VALUES["input_file"]
-        if not os.path.isabs(default_input):
-            default_input = os.path.abspath(os.path.join(script_dir, default_input))
+        # Handle default input file path. If in dev mode, use constants.CONFIG_VALUES["input_file"], otherwise use an empty string.
+        if getattr(sys, 'frozen', False):
+            default_input = ""
+        else:
+            default_input = constants.CONFIG_VALUES["input_file"]
+            if not os.path.isabs(default_input):
+                default_input = resource_path(default_input)
         self.input_path = tk.StringVar(value=default_input)
 
         input_entry = ttk.Entry(input_frame, textvariable=self.input_path, width=50)
@@ -517,14 +532,13 @@ class VoxelConverterUI:
         shutil.copy(json_path, blueprint_json)
 
         # Copy blueprint_schematic/icon.png to the blueprint directory
-        dirname = os.path.dirname(__file__)
-        icon_path = os.path.join(dirname, "blueprint_schematic", "icon.png")
+        icon_path = resource_path("blueprint_schematic/icon.png")
         if os.path.exists(icon_path):
             icon_dest = os.path.join(blueprint_path, "icon.png")
             shutil.copy(icon_path, icon_dest)
         
         # Load blueprint_schematic/description.json
-        desc_path = os.path.join(dirname, "blueprint_schematic", "description.json")
+        desc_path = resource_path("blueprint_schematic/description.json")
         with open(desc_path, 'r') as f:
             desc_data = json.load(f)
 
@@ -553,4 +567,6 @@ def main():
     root.mainloop()
 
 if __name__ == "__main__":
+    import multiprocessing as mp
+    mp.freeze_support()
     main()

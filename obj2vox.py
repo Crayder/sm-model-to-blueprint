@@ -1,6 +1,5 @@
 import numpy as np
 import json
-import multiprocessing as mp
 from tqdm import tqdm
 from itertools import product
 from scipy.spatial import KDTree
@@ -311,6 +310,8 @@ def axis_test_Z(edge, V0, V1, V2, fex, fey, box_half_size):
 
 # Function to mark voxels based on triangle-voxel intersection
 def mark_voxels(voxel_grid, voxel_colors, voxel_materials, min_grid_coords, voxel_scale, vertices, faces, face_materials):
+    import multiprocessing as mp
+
     print("Marking voxels...")
     start_time = time()
 
