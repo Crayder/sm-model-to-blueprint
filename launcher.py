@@ -436,6 +436,11 @@ class VoxelConverterUI:
 def main():
     root = tk.Tk()
     app = VoxelConverterUI(root)
+    dirname = os.path.dirname(__file__)
+    icon_path = os.path.join(dirname, "blueprint_schematic", "icon.png")
+    if os.path.exists(icon_path):
+        root.iconphoto(True, tk.PhotoImage(file=icon_path))
+    root.title("OBJ to Scrap Mechanic Blueprint Converter")
     root.mainloop()
 
 if __name__ == "__main__":
