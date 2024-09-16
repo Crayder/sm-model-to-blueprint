@@ -10,6 +10,22 @@ import numpy as np
 import obj2vox  # Assuming obj-to-vox.py is renamed to obj_to_vox.py
 import constants
 
+# Function to get the blueprints directory
+def get_blueprints_directory():
+    blueprint_dir = os.path.join(os.getenv('APPDATA'), 'Axolot Games', 'Scrap Mechanic', 'User')
+    if not os.path.exists(blueprint_dir):
+        return None
+
+    user_dirs = [d for d in os.listdir(blueprint_dir) if d.startswith('User_')]
+    if not user_dirs:
+        return None
+
+    blueprint_dir = os.path.join(blueprint_dir, user_dirs[0], 'Blueprints')
+    if os.path.exists(blueprint_dir):
+        return blueprint_dir
+    else:
+        return None
+
 class Redirector:
     def __init__(self, text_widget, original_stream):
         self.text_widget = text_widget
