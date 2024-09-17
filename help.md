@@ -53,6 +53,7 @@
 - **How to Use**:
   - Select the rotation axis (**X**, **Y**, or **Z**) from the dropdown menu under **Rotation**.
   - Enter the rotation angle in degrees.
+- **Note**: By default this rotates 90 degrees around the X-axis. This is the correct rotation to result in an upright model in Scrap Mechanic when using an OBJ file. Later support for other formats may require different rotations.
 
 ### 5. Block Appearance
 

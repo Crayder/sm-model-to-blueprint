@@ -10,9 +10,11 @@ class MarkdownHelpViewer(tk.Toplevel):
         self.geometry("800x600")
         self.help_file = help_file
 
+        self.configure(bg="white")
+
         # Create a Frame for HTML content
         html_frame = ttk.Frame(self)
-        html_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        html_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         # Create HTMLScrolledText widget which includes scrollbars
         self.html_widget = HTMLScrolledText(
@@ -21,7 +23,8 @@ class MarkdownHelpViewer(tk.Toplevel):
             background="white",
             foreground="black",
             font=("Arial", 12),
-            wrap="word"
+            wrap="word",
+            bd=0
         )
         self.html_widget.pack(fill=tk.BOTH, expand=True)
 
@@ -36,11 +39,22 @@ class MarkdownHelpViewer(tk.Toplevel):
             # Convert Markdown to HTML
             html_content = markdown2.markdown(markdown_content)
 
-            # Set HTML content to the HTML widget
-            self.html_widget.set_html(html_content)
+            # Add inline padding using <div> with inline style
+            padded_html_content = f"""
+            <div style="padding: 20px;">
+                {html_content}
+            </div>
+            """
+
+            # Set HTML content to the HTML widget with inline padding
+            self.html_widget.set_html(padded_html_content)
 
         except FileNotFoundError:
-            error_html = "<h1>Error</h1><p>Help file not found.</p>"
+            error_html = """
+            <div style="padding: 20px;">
+                <h1>Error</h1><p>Help file not found.</p>
+            </div>
+            """
             self.html_widget.set_html(error_html)
 
 def main():

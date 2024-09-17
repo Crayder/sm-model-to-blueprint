@@ -8,9 +8,10 @@ import numpy as np
 import uuid
 import shutil
 
-# Import the obj-to-vox and constants modules
-import obj2vox  # Assuming obj-to-vox.py is renamed to obj_to_vox.py
+# Import modules
+import obj2vox
 import constants
+from help import MarkdownHelpViewer
 
 # Function to get the blueprints directory
 def get_blueprints_directory():
@@ -73,8 +74,13 @@ class VoxelConverterUI:
         # Determine the script's directory
         script_dir = os.path.dirname(os.path.abspath(__file__))
 
-        # Input File Selection
-        input_frame = ttk.LabelFrame(self.root, text="Input OBJ File")
+        # Main frame to hold the input and help frames
+        main_frame = ttk.Frame(self.root)
+        main_frame.grid(row=0, column=0, padx=0, pady=0, sticky="ew")
+        main_frame.grid_columnconfigure(0, weight=1)
+
+        # Input File Selection Frame
+        input_frame = ttk.LabelFrame(main_frame, text="Input OBJ File")
         input_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
         # Handle default input file path. If in dev mode, use constants.CONFIG_VALUES["input_file"], otherwise use an empty string.
@@ -92,9 +98,17 @@ class VoxelConverterUI:
         input_button = ttk.Button(input_frame, text="Browse", command=self.browse_input)
         input_button.grid(row=0, column=1, padx=5, pady=5)
 
+        # Help Button Frame (separate from input frame, aligned to the right)
+        help_frame = ttk.Frame(main_frame)
+        help_frame.grid(row=0, column=1, padx=(0, 10), pady=10, sticky="nsew")  # Adjust alignment with "ne" for top-right
+
+        # Help button inside its own frame
+        help_button = ttk.Button(help_frame, text="Help", command=self.open_help, width=10)
+        help_button.pack(fill=tk.Y, expand=True)
+
         # Output File Selection
         output_frame = ttk.LabelFrame(self.root, text="Output Blueprint JSON File")
-        output_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
+        output_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
 
         # Handle default output file path
         default_output = constants.CONFIG_VALUES["output_file"]
@@ -124,7 +138,7 @@ class VoxelConverterUI:
 
         # Transformation Parameters
         transform_frame = ttk.LabelFrame(self.root, text="Model Transformations")
-        transform_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+        transform_frame.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
 
         # Scaling
         scaling_label = ttk.Label(transform_frame, text="Scaling:")
@@ -197,7 +211,7 @@ class VoxelConverterUI:
 
         # Color Selection
         appearance_frame = ttk.LabelFrame(self.root, text="Block Appearance")
-        appearance_frame.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
+        appearance_frame.grid(row=4, column=0, padx=10, pady=10, sticky="ew")
 
         self.use_set_color = tk.BooleanVar(value=constants.CONFIG_VALUES["use_set_color"])
         set_color_check = ttk.Checkbutton(appearance_frame, text="Use Custom Set Color", variable=self.use_set_color, command=self.toggle_color_picker)
@@ -266,6 +280,10 @@ class VoxelConverterUI:
             self.root.grid_rowconfigure(i, weight=0)
         self.root.grid_rowconfigure(8, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
+
+    def open_help(self):
+        if not hasattr(self, 'help_window') or not self.help_window.winfo_exists():
+            self.help_window = MarkdownHelpViewer(self.root, help_file="help.md")  # Adjust the help file path if needed
 
     def browse_input(self):
         default_input = constants.CONFIG_VALUES["input_file"]
@@ -563,7 +581,7 @@ def main():
     icon_path = os.path.join(dirname, "blueprint_schematic", "icon.png")
     if os.path.exists(icon_path):
         root.iconphoto(True, tk.PhotoImage(file=icon_path))
-    root.title("OBJ to Scrap Mechanic Blueprint Converter")
+    root.title("Model Scrapper")
     root.mainloop()
 
 if __name__ == "__main__":
