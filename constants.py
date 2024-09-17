@@ -65,7 +65,7 @@ SM_COLORS_KDTREE = KDTree(SM_COLORS_RGB)
 # Default values for the form inputs
 CONFIG_VALUES = {
     "input_file": "testStuff.obj",
-    "output_file": "C:\\Users\\Corey\\AppData\\Roaming\\Axolot Games\\Scrap Mechanic\\User\\User_76561198805744844\\Blueprints\\51c6485e-c45d-47b0-a3c9-08d2db23aef9\\blueprint.json",
+    "output_file": "C:\\Users\\Jonathon\\AppData\\Roaming\\Axolot Games\\Scrap Mechanic\\User\\User_18496532008014957\\Blueprints\\99794618-0d85-4f21-9297-aa2ba630f705\\blueprint.json",
     "voxel_scale": 1.0,
     "obj_scale": 3.0,
     "obj_offset": np.array([0.5, 0.5, 0.5]),
