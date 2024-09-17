@@ -1,8 +1,8 @@
-# OBJ to Scrap Mechanic Blueprint Converter - User Guide
+# Model Scrapper Help
 
 ## Introduction
 
-The **OBJ to Scrap Mechanic Blueprint Converter** is a tool that allows you to transform 3D models in OBJ format into blueprints compatible with the game **Scrap Mechanic**. This enables you to import custom models into the game and build them using in-game materials.
+**Model Scrapper** is a tool that allows you to transform 3D models in **OBJ** format into blueprints compatible with the game **Scrap Mechanic**. This enables you to import custom models into the game and build them using in-game materials.
 
 ---
 
