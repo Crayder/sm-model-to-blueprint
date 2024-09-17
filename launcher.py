@@ -283,7 +283,7 @@ class VoxelConverterUI:
 
     def open_help(self):
         if not hasattr(self, 'help_window') or not self.help_window.winfo_exists():
-            self.help_window = MarkdownHelpViewer(self.root, help_file="help.md")  # Adjust the help file path if needed
+            self.help_window = MarkdownHelpViewer(self.root, help_file=resource_path("doc/help.md"))  # Adjust the help file path if needed
 
     def browse_input(self):
         default_input = constants.CONFIG_VALUES["input_file"]

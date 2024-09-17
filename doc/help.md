@@ -4,6 +4,8 @@
 
 **Model Scrapper** is a tool that allows you to transform 3D models in **OBJ** format into blueprints compatible with the game **Scrap Mechanic**. This enables you to import custom models into the game and build them using in-game materials.
 
+- **Note:** You can choose the blocks and colors to use in Blender using materials. See more details in the "Using Materials in Blender" section at the bottom.
+
 ---
 
 ## Using the App
@@ -112,3 +114,59 @@
 - **Optimize Your Model**: Simplify your OBJ model by reducing unnecessary polygons to improve conversion speed.
 - **Scaling Appropriately**: Adjust scaling to match Scrap Mechanic's unit system for accurate sizing. 1x object scale in Scrap Mechanic is 1 block per unit.
 - **Interior Fill Usage**: Use interior fill for models that need to be solid. This will result in less prisms for the game to render in most cases.
+
+
+---
+
+## Using Materials in Blender
+
+By default, if you just have no material or downloaded a model from the internet, the converter will use the default block and color for the entire model.
+
+To define which blocks and colors the converter will use, you need to create materials in Blender for the objects in your scene. Here's how to do it:
+
+1. **Create Materials**: In Blender, assign materials to the different parts of your object.
+2. **Material Names**: The material names will determine which block to use. You can choose a block name from the list below.
+3. **Base Colors**: The base color of each material will determine the color applied to the blocks in the final output.
+4. **Assign to Faces**: Assign these materials to the faces in your Blender model. The converter will use the specified block and color for those faces during the conversion.
+
+### Block Names
+
+- scrapwood
+- wood1, wood2, wood3
+- scrapmetal,
+- metal1, metal2, metal3
+- scrapstone
+- concrete1, concrete2, concrete3
+- cardboard,
+- sand,
+- plastic,
+- glass,
+- glasstile,
+- armoredglass,
+- bubblewrap,
+- restroom,
+- tiles,
+- bricks,
+- lights,
+- caution,
+- crackedconcrete,
+- concretetiles,
+- metalbricks,
+- beam,
+- insulation,
+- drywall,
+- carpet,
+- plasticwall,
+- metalnet,
+- crossnet,
+- tryponet,
+- stripednet,
+- squarenet,
+- spaceshipmetal,
+- spaceshipfloor,
+- treadplate,
+- warehousefloor,
+- wornmetal,
+- framework,
+- challenge01, challenge02
+- challengeglass
